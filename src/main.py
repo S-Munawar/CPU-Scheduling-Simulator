@@ -1,12 +1,17 @@
 import random
-from scheduler import FCFSScheduler, RoundRobinScheduler
-from engine import SimulationEngine
-from core import Event, EventType, Job
-from visualize import metricsCollector, visualizer
+
 from matplotlib import pyplot as plt
 
+from core import Event, EventType, Job
+from engine import SimulationEngine
+from scheduler import FCFSScheduler, RoundRobinScheduler
+from visualize import metricsCollector, visualizer
+
+
 # Generates realistic, stochastic streams of incoming jobs or network packets.
-def workloadGenerator(num_jobs: int, max_arrival_time: int, max_burst_time: int) -> list[Job]:
+def workloadGenerator(
+    num_jobs: int, max_arrival_time: int, max_burst_time: int
+) -> list[Job]:
     """Generate a randomized workload for the simulation.
 
     Each generated job receives a unique integer ID, a random arrival time in
@@ -26,10 +31,13 @@ def workloadGenerator(num_jobs: int, max_arrival_time: int, max_burst_time: int)
     for i in range(num_jobs):
         arrival_time = random.randint(0, max_arrival_time)
         total_burst_time = random.randint(1, max_burst_time)
-        jobs.append(Job(job_id=i, arrival_time=arrival_time, total_burst_time=total_burst_time))
+        jobs.append(
+            Job(job_id=i, arrival_time=arrival_time, total_burst_time=total_burst_time)
+        )
     return jobs
 
-# This is the main entry point for the simulation. It generates a workload, initializes the scheduler and simulation engine, and runs the simulation.
+
+# Main entry point for generating a workload and running the simulations.
 if __name__ == "__main__":
     jobs = workloadGenerator(num_jobs=10, max_arrival_time=50, max_burst_time=10)
     schedulers = [FCFSScheduler(), RoundRobinScheduler(quantum=2)]
@@ -44,6 +52,9 @@ if __name__ == "__main__":
             engine.schedule_event(event)
         engine.run()
         metricsCollector(scheduler.__class__.__name__, engine.completed_jobs)
-        visualizer(engine.completed_jobs, title=f"Execution Timeline - {scheduler.__class__.__name__}")
-        
+        visualizer(
+            engine.completed_jobs,
+            title=f"Execution Timeline - {scheduler.__class__.__name__}",
+        )
+
     plt.show()  # Show the plot for all schedulers after the simulations are complete

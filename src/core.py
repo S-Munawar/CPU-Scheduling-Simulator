@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import enum
 import heapq
-from dataclasses import dataclass, field
-from typing import Any
+
 
 class EventType(enum.Enum):
     """Enumeration of all event kinds supported by the simulation engine.
@@ -16,7 +17,8 @@ class EventType(enum.Enum):
     COMPLETION = "completion"
     QUANTUM_EXPIRATION = "quantum_expiration"
 
-# Represents an event in the system, such as a job arrival, completion and quantum expiration. Binds a timestamp to a specific event type.
+
+# Represents events such as job arrival, completion, and quantum expiration.
 class Event:
     """Represents a timestamped event waiting to be processed.
 
@@ -29,8 +31,10 @@ class Event:
         event_type: Type of event to process at ``timestamp``.
         job: Optional job associated with the event.
     """
-    
-    def __init__(self, timestamp: float, event_type: EventType, job: Any = None) -> None:
+
+    def __init__(
+        self, timestamp: float, event_type: EventType, job: Job | None = None
+    ) -> None:
         """Initialize an event.
 
         Args:
@@ -41,9 +45,9 @@ class Event:
 
         self.timestamp = timestamp
         self.event_type: EventType = event_type
-        self.job = job
-        
-    def __lt__(self, other: "Event") -> bool:
+        self.job: Job | None = job
+
+    def __lt__(self, other: Event) -> bool:
         """Return whether this event should be ordered before another event.
 
         Events are primarily ordered by timestamp. When two events have the
@@ -65,7 +69,9 @@ class Event:
     def __str__(self) -> str:
         """Return a human-readable representation for logging and debugging."""
 
-        return f"Event at {self.timestamp}: {self.event_type} for Job {self.job.job_id if self.job else 'N/A'}"
+        job_id = self.job.job_id if self.job else "N/A"
+        return f"Event at {self.timestamp}: {self.event_type} for Job {job_id}"
+
 
 # Represents an individual process or network packet moving through the system.
 class Job:
@@ -83,8 +89,10 @@ class Job:
         start_time: First simulated time at which the job receives CPU time.
         completion_time: Simulated time at which the job finishes.
     """
-    
-    def __init__(self, job_id: int, arrival_time: float, total_burst_time: float) -> None:
+
+    def __init__(
+        self, job_id: int, arrival_time: float, total_burst_time: float
+    ) -> None:
         """Initialize a job with arrival and burst-time information.
 
         Args:
@@ -97,9 +105,9 @@ class Job:
         self.arrival_time = arrival_time
         self.total_burst_time = total_burst_time
         self.remaining_burst_time = total_burst_time
-        self.start_time = None
-        self.completion_time = None
-        
+        self.start_time: float | None = None
+        self.completion_time: float | None = None
+
     def turnaround_time(self) -> float | None:
         """Calculate the elapsed time from arrival to completion.
 
@@ -107,7 +115,11 @@ class Job:
             The turnaround time when the job has completed; otherwise ``None``.
         """
 
-        return self.completion_time - self.arrival_time if self.completion_time is not None else None
+        return (
+            self.completion_time - self.arrival_time
+            if self.completion_time is not None
+            else None
+        )
 
     def waiting_time(self) -> float | None:
         """Calculate total time spent waiting outside CPU execution.
@@ -117,7 +129,12 @@ class Job:
             otherwise ``None``.
         """
 
-        return self.turnaround_time() - self.total_burst_time if self.turnaround_time() is not None else None
+        turnaround_time = self.turnaround_time()
+        return (
+            turnaround_time - self.total_burst_time
+            if turnaround_time is not None
+            else None
+        )
 
     def response_time(self) -> float | None:
         """Calculate the delay between arrival and first CPU service.
@@ -126,12 +143,18 @@ class Job:
             The response time once the job has started; otherwise ``None``.
         """
 
-        return self.start_time - self.arrival_time if self.start_time is not None else None
-    
+        return (
+            self.start_time - self.arrival_time if self.start_time is not None else None
+        )
+
     def __str__(self) -> str:
         """Return a compact human-readable summary of the job."""
 
-        return f"Job {self.job_id}: Arrived at {self.arrival_time}, Total Burst Time: {self.total_burst_time}"
+        return (
+            f"Job {self.job_id}: Arrived at {self.arrival_time}, "
+            f"Total Burst Time: {self.total_burst_time}"
+        )
+
 
 # Represents a queue of events that need to be processed in chronological order.
 class EventQueue:
@@ -144,11 +167,11 @@ class EventQueue:
     Attributes:
         events: Internal heap-backed list of pending ``Event`` objects.
     """
-    
+
     def __init__(self) -> None:
         """Create an empty event queue."""
 
-        self.events = []
+        self.events: list[Event] = []
 
     def add_event(self, event: Event) -> None:
         """Insert an event into the queue.
@@ -173,7 +196,7 @@ class EventQueue:
         """Return whether the queue has no pending events."""
 
         return len(self.events) == 0
-    
+
     def __len__(self) -> int:
         """Return the number of pending events in the queue."""
 

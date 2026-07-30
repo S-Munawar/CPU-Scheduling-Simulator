@@ -1,8 +1,10 @@
-from core import Job
 from abc import ABC, abstractmethod
 from collections import deque
 
+from core import Job
+
 # These classes handle the algorithm logic (how jobs are selected for execution).
+
 
 # Defines the standard interface for all CPU scheduling algorithms.
 class Scheduler(ABC):
@@ -12,7 +14,7 @@ class Scheduler(ABC):
     accepting jobs, selecting the next job, and reporting whether work remains.
     The simulation engine depends only on this interface.
     """
-        
+
     @abstractmethod
     def add_job(self, job: Job) -> None:
         """Add a job to the scheduler's ready queue.
@@ -41,6 +43,7 @@ class Scheduler(ABC):
 
         pass
 
+
 class FCFSScheduler(Scheduler):
     """First-Come, First-Served scheduler implementation.
 
@@ -52,8 +55,8 @@ class FCFSScheduler(Scheduler):
     def __init__(self) -> None:
         """Initialize an empty FIFO ready queue."""
 
-        self.ready_queue = deque()  # Using deque for efficient FIFO operations
-    
+        self.ready_queue: deque[Job] = deque()
+
     def add_job(self, job: Job) -> None:
         """Append a job to the back of the FIFO ready queue.
 
@@ -80,6 +83,7 @@ class FCFSScheduler(Scheduler):
 
         return len(self.ready_queue) == 0
 
+
 class RoundRobinScheduler(Scheduler):
     """Round Robin scheduler implementation.
 
@@ -99,7 +103,7 @@ class RoundRobinScheduler(Scheduler):
                 preemption.
         """
 
-        self.ready_queue = deque()
+        self.ready_queue: deque[Job] = deque()
         self.quantum = quantum
 
     def add_job(self, job: Job) -> None:
@@ -126,7 +130,8 @@ class RoundRobinScheduler(Scheduler):
         """Return whether the Round Robin ready queue contains no jobs."""
 
         return len(self.ready_queue) == 0
-    
+
+
 class SRTFScheduler(Scheduler):
     """Shortest-Remaining-Time-First scheduler placeholder.
 
@@ -138,7 +143,7 @@ class SRTFScheduler(Scheduler):
     def __init__(self) -> None:
         """Initialize an empty ready queue for SRTF scheduling."""
 
-        self.ready_queue = deque()
+        self.ready_queue: deque[Job] = deque()
 
     def add_job(self, job: Job) -> None:
         """Append a job to the ready queue.
