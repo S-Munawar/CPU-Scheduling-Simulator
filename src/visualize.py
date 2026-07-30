@@ -71,7 +71,7 @@ def visualizer(
         title: Title displayed above the chart.
     """
 
-    FIGURE_SIZE = (10, 6)
+    FIGURE_SIZE = (10, 5)
     BAR_COLOR = "skyblue"
     EDGE_COLOR = "black"
 
@@ -84,11 +84,10 @@ def visualizer(
             raise ValueError("Completed jobs must include start and completion times.")
 
         # Plot horizontal execution bar from start_time to completion_time
-        duration = job.completion_time - job.start_time
-        ax.barh(
-            job.job_id,
-            duration,
-            left=job.start_time,
+        bars = [(start, end - start) for start, end in job.execution_intervals]
+        ax.broken_barh(
+            bars,
+            (job.job_id * 10, 8),
             color=BAR_COLOR,
             edgecolor=EDGE_COLOR,
         )
@@ -96,9 +95,10 @@ def visualizer(
     ax.set_xlabel("Time")
     ax.set_ylabel("Job ID")
     ax.set_yticks(
-        [job.job_id for job in sorted_jobs],
+        [job.job_id * 10 + 4 for job in sorted_jobs],
         [f"Job {job.job_id}" for job in sorted_jobs],
     )
     ax.set_title(title)
-    ax.grid(axis="x")
+    ax.grid(True, linestyle='--', alpha=0.5)
+    
     plt.tight_layout()

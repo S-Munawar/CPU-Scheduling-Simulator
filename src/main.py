@@ -1,10 +1,11 @@
+import copy
 import random
 
 from matplotlib import pyplot as plt
 
 from core import Event, EventType, Job
 from engine import SimulationEngine
-from scheduler import FCFSScheduler, RoundRobinScheduler
+from scheduler import FCFSScheduler, RoundRobinScheduler, SRTFScheduler
 from visualize import metricsCollector, visualizer
 
 
@@ -39,15 +40,16 @@ def workloadGenerator(
 
 # Main entry point for generating a workload and running the simulations.
 if __name__ == "__main__":
-    jobs = workloadGenerator(num_jobs=10, max_arrival_time=50, max_burst_time=10)
-    schedulers = [FCFSScheduler(), RoundRobinScheduler(quantum=2)]
-    # for job in jobs:
-    #     print(job)
-    # print("\nStarting simulation...\n")
+    base_jobs = workloadGenerator(num_jobs=10, max_arrival_time=50, max_burst_time=100)
+    schedulers = [FCFSScheduler(), RoundRobinScheduler(quantum=2.0), SRTFScheduler()]
+    for job in base_jobs:
+        print(job)
+    print("\nStarting simulation...\n")
     for scheduler in schedulers:
+        jobs_copy = copy.deepcopy(base_jobs)
         print(f"Running simulation with {scheduler.__class__.__name__}...")
         engine = SimulationEngine(scheduler=scheduler, context_switch_penalty=0.1)
-        events = [Event(job.arrival_time, EventType.ARRIVAL, job) for job in jobs]
+        events = [Event(job.arrival_time, EventType.ARRIVAL, job) for job in jobs_copy]
         for event in events:
             engine.schedule_event(event)
         engine.run()

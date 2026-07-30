@@ -46,6 +46,7 @@ class Event:
         self.timestamp = timestamp
         self.event_type: EventType = event_type
         self.job: Job | None = job
+        self.is_cancelled: bool = False
 
     def __lt__(self, other: Event) -> bool:
         """Return whether this event should be ordered before another event.
@@ -107,6 +108,7 @@ class Job:
         self.remaining_burst_time = total_burst_time
         self.start_time: float | None = None
         self.completion_time: float | None = None
+        self.execution_intervals: list[tuple[float, float]] = []
 
     def turnaround_time(self) -> float | None:
         """Calculate the elapsed time from arrival to completion.

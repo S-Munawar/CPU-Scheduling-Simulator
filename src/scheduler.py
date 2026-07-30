@@ -1,3 +1,4 @@
+import heapq
 from abc import ABC, abstractmethod
 from collections import deque
 
@@ -143,7 +144,7 @@ class SRTFScheduler(Scheduler):
     def __init__(self) -> None:
         """Initialize an empty ready queue for SRTF scheduling."""
 
-        self.ready_queue: deque[Job] = deque()
+        self.ready_queue: list[tuple[float, int, Job]] = []
 
     def add_job(self, job: Job) -> None:
         """Append a job to the ready queue.
@@ -151,8 +152,8 @@ class SRTFScheduler(Scheduler):
         Args:
             job: Job waiting for future CPU execution.
         """
-
-        self.ready_queue.append(job)
+        entry = (job.remaining_burst_time, job.job_id, job)
+        heapq.heappush(self.ready_queue, entry)
 
     def get_next_job(self) -> Job | None:
         """Remove and return the next queued job.
@@ -162,7 +163,7 @@ class SRTFScheduler(Scheduler):
         """
 
         if self.ready_queue:
-            return self.ready_queue.popleft()
+            return heapq.heappop(self.ready_queue)[2]
         return None
 
     def is_empty(self) -> bool:

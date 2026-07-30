@@ -1,5 +1,5 @@
 from core import Event, EventQueue, EventType, Job
-from scheduler import RoundRobinScheduler, Scheduler
+from scheduler import RoundRobinScheduler, Scheduler, SRTFScheduler
 
 
 class CPUCore:
@@ -23,25 +23,32 @@ class CPUCore:
 
         self.current_job: Job | None = None
         self.context_switch_penalty = context_switch_penalty
+        self.last_start_time: float = 0.0
+        self.active_event: Event | None = None  # Track event to cancel on preemption
 
     def is_idle(self) -> bool:
         """Return whether the CPU currently has no assigned job."""
 
         return self.current_job is None
 
-    def assign_job(self, job: Job) -> None:
+    def assign_job(self, job: Job, start_time: float, active_event: Event) -> None:
         """Assign a job to the CPU for execution.
 
         Args:
             job: Job selected by the scheduler to run next.
+            start_time: Time at which the job starts executing.
+            active_event: Event associated with the job's execution.
         """
 
         self.current_job = job
+        self.last_start_time = start_time
+        self.active_event = active_event
 
     def release(self) -> None:
         """Mark the CPU as idle by clearing the current job reference."""
 
         self.current_job = None
+        self.active_event = None
 
 
 class SimulationEngine:
@@ -101,7 +108,10 @@ class SimulationEngine:
             if event is None:
                 break
 
-            print(event)
+            # Skip events cancelled by preemption
+            if getattr(event, "is_cancelled", False):
+                continue
+
             self.clock = event.timestamp
 
             # Handle the event based on its type
@@ -109,6 +119,47 @@ class SimulationEngine:
                 if event.job is None:
                     raise ValueError("Arrival events must include a job.")
                 self.scheduler.add_job(event.job)
+
+                # Check for Preemption if SRTF is active
+                if isinstance(self.scheduler, SRTFScheduler) and not self.cpu.is_idle():
+                    running_job = self.cpu.current_job
+                    if running_job is None:
+                        raise RuntimeError("CPU cannot be busy without a current job.")
+
+                    # Update running job's remaining time up to current clock
+                    elapsed_time = max(0.0, self.clock - self.cpu.last_start_time)
+                    executed_time = min(
+                        elapsed_time, running_job.remaining_burst_time
+                    )
+                    current_remaining_time = (
+                        running_job.remaining_burst_time - executed_time
+                    )
+                    running_job.remaining_burst_time = current_remaining_time
+                    self.cpu.last_start_time = self.clock
+
+                    if current_remaining_time > 0:
+                        # Fetch shortest job from scheduler (includes the new arrival)
+                        shortest_job = self.scheduler.get_next_job()
+
+                        if (
+                            shortest_job
+                            and shortest_job.remaining_burst_time
+                            < current_remaining_time
+                        ):
+                            running_job.execution_intervals.append((self.cpu.last_start_time, self.clock))
+                            # PREEMPTION TRIGGERED!
+                            if self.cpu.active_event:
+                                self.cpu.active_event.is_cancelled = True
+
+                            # Requeue both jobs back into min-heap
+                            self.scheduler.add_job(running_job)
+                            self.scheduler.add_job(shortest_job)
+                            self.cpu.release()
+                        else:
+                            # Put shortest_job back if it wasn't strictly shorter
+                            if shortest_job:
+                                self.scheduler.add_job(shortest_job)
+
             elif event.event_type == EventType.QUANTUM_EXPIRATION:
                 if event.job is None:
                     raise ValueError("Quantum expiration events must include a job.")
@@ -116,14 +167,17 @@ class SimulationEngine:
                     raise TypeError(
                         "Quantum expiration events require a Round Robin scheduler."
                     )
-
                 event.job.remaining_burst_time -= self.scheduler.quantum
+                event.job.execution_intervals.append((self.cpu.last_start_time, self.clock))
                 self.cpu.release()
                 self.scheduler.add_job(event.job)
+
             else:
                 if event.job is None:
                     raise ValueError("Completion events must include a job.")
+                event.job.remaining_burst_time = 0.0
                 event.job.completion_time = self.clock
+                event.job.execution_intervals.append((self.cpu.last_start_time, self.clock))
                 self.completed_jobs.append(event.job)
                 self.cpu.release()
 
@@ -133,7 +187,6 @@ class SimulationEngine:
                 if next_job is None:
                     continue
 
-                self.cpu.assign_job(next_job)
                 if next_job.start_time is None:
                     next_job.start_time = self.clock
 
@@ -149,12 +202,15 @@ class SimulationEngine:
                     self.clock + execution_time + self.cpu.context_switch_penalty
                 )
 
-                # Decide if job completes or quantum expires
-                if execution_time < next_job.remaining_burst_time:
-                    self.schedule_event(
-                        Event(finish_time, EventType.QUANTUM_EXPIRATION, next_job)
-                    )
-                else:
-                    self.schedule_event(
-                        Event(finish_time, EventType.COMPLETION, next_job)
-                    )
+                # Create event and bind to CPU state
+                event_type = (
+                    EventType.QUANTUM_EXPIRATION
+                    if execution_time < next_job.remaining_burst_time
+                    else EventType.COMPLETION
+                )
+
+                future_event = Event(finish_time, event_type, next_job)
+                self.cpu.assign_job(
+                    next_job, start_time=self.clock, active_event=future_event
+                )
+                self.schedule_event(future_event)
