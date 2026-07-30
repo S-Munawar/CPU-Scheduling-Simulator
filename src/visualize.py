@@ -99,6 +99,6 @@ def visualizer(
         [f"Job {job.job_id}" for job in sorted_jobs],
     )
     ax.set_title(title)
-    ax.grid(True, linestyle='--', alpha=0.5)
-    
+    ax.grid(True, linestyle="--", alpha=0.5)
+
     plt.tight_layout()

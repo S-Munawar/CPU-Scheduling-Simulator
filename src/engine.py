@@ -128,9 +128,7 @@ class SimulationEngine:
 
                     # Update running job's remaining time up to current clock
                     elapsed_time = max(0.0, self.clock - self.cpu.last_start_time)
-                    executed_time = min(
-                        elapsed_time, running_job.remaining_burst_time
-                    )
+                    executed_time = min(elapsed_time, running_job.remaining_burst_time)
                     current_remaining_time = (
                         running_job.remaining_burst_time - executed_time
                     )
@@ -146,7 +144,9 @@ class SimulationEngine:
                             and shortest_job.remaining_burst_time
                             < current_remaining_time
                         ):
-                            running_job.execution_intervals.append((self.cpu.last_start_time, self.clock))
+                            running_job.execution_intervals.append(
+                                (self.cpu.last_start_time, self.clock)
+                            )
                             # PREEMPTION TRIGGERED!
                             if self.cpu.active_event:
                                 self.cpu.active_event.is_cancelled = True
@@ -168,7 +168,9 @@ class SimulationEngine:
                         "Quantum expiration events require a Round Robin scheduler."
                     )
                 event.job.remaining_burst_time -= self.scheduler.quantum
-                event.job.execution_intervals.append((self.cpu.last_start_time, self.clock))
+                event.job.execution_intervals.append(
+                    (self.cpu.last_start_time, self.clock)
+                )
                 self.cpu.release()
                 self.scheduler.add_job(event.job)
 
@@ -177,7 +179,9 @@ class SimulationEngine:
                     raise ValueError("Completion events must include a job.")
                 event.job.remaining_burst_time = 0.0
                 event.job.completion_time = self.clock
-                event.job.execution_intervals.append((self.cpu.last_start_time, self.clock))
+                event.job.execution_intervals.append(
+                    (self.cpu.last_start_time, self.clock)
+                )
                 self.completed_jobs.append(event.job)
                 self.cpu.release()
 
