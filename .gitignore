@@ -8,23 +8,29 @@ __pycache__/
 venv/
 env/
 ENV/
+.python-version
 
 # Distribution / packaging
 build/
 dist/
 *.egg-info/
 .eggs/
+pip-wheel-metadata/
 
 # Test / coverage artifacts
 .pytest_cache/
 .coverage
+.coverage.*
 coverage.xml
 htmlcov/
+.tox/
+.nox/
 
 # Type checker / linter caches
 .mypy_cache/
 .ruff_cache/
 .pyre/
+.cache/
 
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/
@@ -32,12 +38,20 @@ htmlcov/
 # Environment variables
 .env
 .env.*
+!.env.example
+
+# Local tooling metadata
+.agents/
+.codex/
 
 # IDE / editor files
 .idea/
 .vscode/
 *.swp
 *.swo
+
+# Logs
+*.log
 
 # OS files
 .DS_Store
